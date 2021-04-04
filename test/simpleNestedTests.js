@@ -1,14 +1,10 @@
-const { group, test, step, runGroups } = require('../src/jstest');
+const { group, test, step, before, beforeEach, afterEach, after, runGroups } = require('../src/jstest');
 const util = require('util');
 const { ok } = require('assert');
 
 const sleep = util.promisify(setTimeout);
 
 group("my group 1", {
-    before: async () => {
-        await sleep(1000);
-        console.log("in before");
-    },
     tests: [
         test("inner test 1", async () => {
             await sleep(1000);
@@ -20,7 +16,7 @@ group("my group 1", {
 
         test("inner test 2", async () => {
             await sleep(1000);
-            ok(1===1)
+            ok(1 === 1)
         })
     ],
     after: async () => {
@@ -32,9 +28,11 @@ group("my group 1", {
 
 group("my group 2", {
     before: [
-        {
-            
-        }
+        before("the 1st before", async () => {
+            await sleep(1000);
+            console.log("db connection created.");
+        }, { parallel: true }),
+
     ],
     tests: [
         test("inner test 1.2", async () => {
@@ -46,7 +44,7 @@ group("my group 2", {
 
         test("inner test 2.2", async () => {
             await sleep(1000);
-            ok(1===1)
+            ok(1 === 1)
         }),
 
         test("inner test 2.3", async () => {
@@ -57,12 +55,15 @@ group("my group 2", {
                 await sleep(1600);
             });
 
-            ok(1===1)
-        }, {parallel: false})
+            ok(1 === 1)
+        }, { parallel: true })
     ],
     after: async () => {
         await sleep(1000);
         console.log("in after");
+    },
+    options: {
+        parallel: true
     }
 
 });
