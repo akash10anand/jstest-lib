@@ -18,11 +18,7 @@ group("my group 1", {
             await sleep(1000);
             ok(1 === 1)
         })
-    ],
-    after: async () => {
-        await sleep(1000);
-        console.log("in after");
-    }
+    ]
 
 })
 

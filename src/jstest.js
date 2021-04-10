@@ -1,7 +1,8 @@
 //@ts-check
 
+const { hooks } = require("./constants");
 const report = require("./report");
-const { Group, Test } = require("./test");
+const { Group, Test, Hook } = require("./test");
 
 
 /**
@@ -39,12 +40,6 @@ let groups = [];
 *            timeout: number,
 *            retry: number,
 *            todo: boolean}} GroupOptions
-*/
-
-/**
-* @typedef {{desc: (String|null),
-*            fn: Function,
-*            options: BaseOptions}} Hook
 */
 
 /**
@@ -105,16 +100,17 @@ function test(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, time
     todo: false
 }) {
     let t = new Test(desc, fn);
-    if (arguments[2] !== undefined) {
-        t.options.skip = skip;
-        t.options.reasonToSkip = reasonToSkip;
-        t.options.parallel = parallel;
-        t.options.skipInCi = skipInCi;
-        t.options.onlyInCi = onlyInCi;
-        t.options.timeout = timeout;
-        t.options.retry = retry;
-        t.options.todo = todo;
-    }
+    // if (arguments[2] !== undefined) {
+    //     t.options.skip = skip;
+    //     t.options.reasonToSkip = reasonToSkip;
+    //     t.options.parallel = parallel;
+    //     t.options.skipInCi = skipInCi;
+    //     t.options.onlyInCi = onlyInCi;
+    //     t.options.timeout = timeout;
+    //     t.options.retry = retry;
+    //     t.options.todo = todo;
+    // }
+    t.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry, todo }
     report(t);
     return t;
 }
@@ -133,7 +129,8 @@ async function step(desc, cb) {
 /**
  * @returns {Hook}
  */
-function before(desc, fn, { reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry } = {
+function before(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry } = {
+    skip: false,
     reasonToSkip: "",
     parallel: true,
     skipInCi: false,
@@ -141,24 +138,70 @@ function before(desc, fn, { reasonToSkip, parallel, skipInCi, onlyInCi, timeout,
     timeout: Infinity,
     retry: 0
 }) {
-    return {
-        desc: desc,
-        fn: fn,
-        options: {
-            reasonToSkip,
-            parallel,
-            skipInCi,
-            onlyInCi,
-            timeout,
-            retry
-        }
-    }
+    let hook = new Hook(desc, fn);
+    hook.type = hooks.types.BEFORE;
+    hook.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry }
+    return hook;
+
+}
+// The HOOKS
+/**
+ * @returns {Hook}
+ */
+ function beforeEach(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry } = {
+    skip: false,
+    reasonToSkip: "",
+    parallel: true,
+    skipInCi: false,
+    onlyInCi: false,
+    timeout: Infinity,
+    retry: 0
+}) {
+    let hook = new Hook(desc, fn);
+    hook.type = hooks.types.BEFOREEACH;
+    hook.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry }
+    return hook;
+
+}
+// The HOOKS
+/**
+ * @returns {Hook}
+ */
+ function afterEach(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry } = {
+    skip: false,
+    reasonToSkip: "",
+    parallel: true,
+    skipInCi: false,
+    onlyInCi: false,
+    timeout: Infinity,
+    retry: 0
+}) {
+    let hook = new Hook(desc, fn);
+    hook.type = hooks.types.AFTEREACH;
+    hook.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry }
+    return hook;
+
+}
+// The HOOKS
+/**
+ * @returns {Hook}
+ */
+ function after(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry } = {
+    skip: false,
+    reasonToSkip: "",
+    parallel: true,
+    skipInCi: false,
+    onlyInCi: false,
+    timeout: Infinity,
+    retry: 0
+}) {
+    let hook = new Hook(desc, fn);
+    hook.type = hooks.types.AFTER;
+    hook.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry }
+    return hook;
 
 }
 
-const beforeEach = before;
-const afterEach = before;
-const after = before;
 
 async function runGroups() {
     for (var index = 0; index < groups.length; index++) {

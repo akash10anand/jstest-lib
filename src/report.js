@@ -1,3 +1,8 @@
+/**
+ * This is a simple report.
+ * Reports use events from tests so later we can use these as plugins.
+ */
+
 const {Test} = require('./test');
 
 /**
