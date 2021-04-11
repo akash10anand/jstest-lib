@@ -4,7 +4,7 @@ const { ok } = require('assert');
 
 const sleep = util.promisify(setTimeout);
 
-group("my group 1", {
+group("A basic group of tests", {
     tests: [
         test("inner test 1", async () => {
             await sleep(1000);
@@ -22,7 +22,7 @@ group("my group 1", {
 
 })
 
-group("my group 2", {
+group("A group of tests with hooks and tests with steps", {
     before: [
         before("the 1st before", async () => {
             await sleep(1000);
@@ -31,19 +31,19 @@ group("my group 2", {
 
     ],
     tests: [
-        test("inner test 1.2", async () => {
+        test("test 1", async () => {
             await sleep(1000);
         }, {
             skip: true,
             retry: 2
         }),
 
-        test("inner test 2.2", async () => {
+        test("test 2", async () => {
             await sleep(1000);
             ok(1 === 1)
         }),
 
-        test("inner test 2.3", async () => {
+        test("test 3", async () => {
             await step("step 1", async () => {
                 await sleep(2000);
             });
@@ -54,10 +54,12 @@ group("my group 2", {
             ok(1 === 1)
         }, { parallel: true })
     ],
-    after: async () => {
-        await sleep(1000);
-        console.log("in after");
-    },
+    after: [
+        after("this should run after all tests are done", async () => {
+            await sleep(1000);
+        })
+    ],
+
     options: {
         parallel: true
     }
