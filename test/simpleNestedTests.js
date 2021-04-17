@@ -6,16 +6,18 @@ const sleep = util.promisify(setTimeout);
 
 group("A basic group of tests", {
     tests: [
-        test("inner test 1", async () => {
+        test("inner test 1", async (t) => {
             await sleep(1000);
+            console.log(t)
         }, {
             skip: false,
             retry: 2,
             parallel: true
         }),
 
-        test("inner test 2", async () => {
+        test("inner test 2", async (t) => {
             await sleep(1000);
+            console.log(t);
             ok(1 === 1)
         })
     ]
