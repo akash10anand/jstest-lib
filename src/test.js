@@ -26,6 +26,9 @@ class Group {
          * @type {Hook|Hook[]}
          */
         this.before = null;
+        /**
+         * @type {Hook|Hook[]}
+         */
         this.beforeEach = null;
         /**
          * @type {(Test[])}
@@ -62,6 +65,9 @@ class Group {
             skip: 0,
             error: 0
         }
+        /**
+         * @type {Test}
+         */
         this.current_test = null;
     }
 
@@ -119,15 +125,15 @@ class Group {
                 console.log("SKIPPED: ", test.desc);
                 test.status = status.COMPLETED;
                 test.result = result.SKIPPED;
-            }else{
+            } else {
                 if (test.fn.toString().startsWith("async")) {
                     await this.runHooks(this.beforeEach)
                     await test.fn(this);
                     test.result = result.PASSED
                     test.status = status.COMPLETED
                     await this.runHooks(this.afterEach);
-                }else{
-                    throw("Not an async function");
+                } else {
+                    throw ("Not an async function");
                 }
             }
         }
@@ -166,7 +172,7 @@ class Group {
      * @param  {Hook|Hook[]} hooks
      */
     async runHooks(hooks) {
-        if (Array.isArray(hooks)) {
+        if (Array.isArray(hooks) && hooks.length > 0) {
             let parallelHooks = hooks.filter(t => t.options.parallel === true);
             let serialHooks = hooks.filter(t => t.options.parallel === false);
             // run the parallel objects
@@ -179,12 +185,12 @@ class Group {
         }
     }
 
-    
+
     /**
      * @param  {Hook|Hook[]} hooks
      */
     async runHooksInParallel(hooks) {
-        if(Array.isArray(hooks)){
+        if (Array.isArray(hooks) && hooks.length > 0) {
             let tasks = hooks.map(async (E, index) => {
                 E.status = status.STARTED
                 if (E.options.skip === true) {
@@ -198,24 +204,26 @@ class Group {
                         await E.fn(this);
                         console.log("✅", E.desc);
                     } catch (error) {
-                            console.log("❗", E.desc);
-                            console.log(error);
-                        }
+                        console.log("❗", E.desc);
+                        console.log(error);
                     }
-                });
+                }
+            });
             await Promise.all(tasks);
         }
     };
 
     async runHooksInSerial(hooks) {
-        for (var index = 0; index < this.serialTests.length; index++) {
-            var E = hooks[index];
-            if (E.fn.toString().startsWith("async")) {
-                E.status = status.STARTED
-                await E.fn(this);
-                console.log("✅", E.desc);
-                E.result = result.PASSED;
-                E.status = status.COMPLETED;
+        if (Array.isArray(hooks) && hooks.length > 0) {
+            for (var index = 0; index < this.serialTests.length; index++) {
+                var E = hooks[index];
+                if (E.fn.toString().startsWith("async")) {
+                    E.status = status.STARTED
+                    await E.fn(this);
+                    console.log("✅", E.desc);
+                    E.result = result.PASSED;
+                    E.status = status.COMPLETED;
+                }
             }
         }
     };
