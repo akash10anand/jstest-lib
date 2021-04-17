@@ -100,16 +100,6 @@ function test(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, time
     todo: false
 }) {
     let t = new Test(desc, fn);
-    // if (arguments[2] !== undefined) {
-    //     t.options.skip = skip;
-    //     t.options.reasonToSkip = reasonToSkip;
-    //     t.options.parallel = parallel;
-    //     t.options.skipInCi = skipInCi;
-    //     t.options.onlyInCi = onlyInCi;
-    //     t.options.timeout = timeout;
-    //     t.options.retry = retry;
-    //     t.options.todo = todo;
-    // }
     t.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry, todo }
     report(t);
     return t;
