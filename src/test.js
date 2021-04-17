@@ -71,7 +71,7 @@ class Group {
             if (test.options.skip === true) {
                 // TEST SKIPPED
                 this.stats.skip++;
-                console.log("SKIPPED: ", test.desc);
+                // console.log("SKIPPED: ", test.desc);
                 test.status = status.COMPLETED;
                 test.result = result.SKIPPED;
             } else {
@@ -81,7 +81,7 @@ class Group {
                     } catch (error) {
                         throw error;
                     }
-                    await test.fn();
+                    await test.fn(this);
                     // TEST PASSED
                     this.stats.pass++;
                     test.status = status.COMPLETED;
@@ -122,7 +122,7 @@ class Group {
             }else{
                 if (test.fn.toString().startsWith("async")) {
                     await this.runHooks(this.beforeEach)
-                    await test.fn();
+                    await test.fn(this);
                     test.result = result.PASSED
                     test.status = status.COMPLETED
                     await this.runHooks(this.afterEach);
@@ -180,27 +180,31 @@ class Group {
     }
 
     
-
+    /**
+     * @param  {Hook|Hook[]} hooks
+     */
     async runHooksInParallel(hooks) {
-        let tasks = hooks.map(async (E, index) => {
-            E.status = status.STARTED
-            if (E.options.skip === true) {
-                // ENTITY SKIPED
-                this.stats.skip++;
-                console.log("SKIPPED: ", E.desc);
-                E.status = status.COMPLETED;
-                E.result = result.SKIPPED;
-            } else {
-                try {
-                    await E.fn();
-                    console.log("✅", E.desc);
-                } catch (error) {
-                        console.log("❗", E.desc);
-                        console.log(error);
+        if(Array.isArray(hooks)){
+            let tasks = hooks.map(async (E, index) => {
+                E.status = status.STARTED
+                if (E.options.skip === true) {
+                    // ENTITY SKIPED
+                    this.stats.skip++;
+                    console.log("SKIPPED: ", E.desc);
+                    E.status = status.COMPLETED;
+                    E.result = result.SKIPPED;
+                } else {
+                    try {
+                        await E.fn(this);
+                        console.log("✅", E.desc);
+                    } catch (error) {
+                            console.log("❗", E.desc);
+                            console.log(error);
+                        }
                     }
-                }
-            });
-        await Promise.all(tasks);
+                });
+            await Promise.all(tasks);
+        }
     };
 
     async runHooksInSerial(hooks) {
@@ -208,7 +212,7 @@ class Group {
             var E = hooks[index];
             if (E.fn.toString().startsWith("async")) {
                 E.status = status.STARTED
-                await E.fn();
+                await E.fn(this);
                 console.log("✅", E.desc);
                 E.result = result.PASSED;
                 E.status = status.COMPLETED;
