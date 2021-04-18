@@ -1,7 +1,7 @@
 //@ts-check
 
 const { hooks } = require("./constants");
-const report = require("./report");
+const report = require("./simple_console_reporter");
 const { Group, Test, Hook } = require("./test");
 
 
