@@ -76,3 +76,6 @@ After: after(desc, fn, {options}) or array of after() functions.
 - timeout: number
 - retry: number
 - retry: number
+
+
+Run Tests using  npm run test
