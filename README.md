@@ -31,7 +31,10 @@ t.group("group 1", {
     tests: [
         t.test("test1", async () => {
             await sleep(2000);
-        }, { parallel: false }),
+        }, { 
+            parallel: false 
+        }),
+        
         t.test("test2", async () => {
             await sleep(2000);
         })
