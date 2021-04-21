@@ -78,4 +78,6 @@ After: after(desc, fn, {options}) or array of after() functions.
 - retry: number
 
 
-Run Tests using  npm run test
+------------
+
+#### Run Tests using    `npm run test`
