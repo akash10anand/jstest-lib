@@ -69,7 +69,7 @@ AfterEach: afterEach(desc, fn, {options}) or array of afterEach() functions.
 After: after(desc, fn, {options}) or array of after() functions.
 
 
-###### Options that can be passed to a Hook:Options that can be passed to a Hook:
+###### Options that can be passed to a Hook:
 - parallel: boolean
 - skipInCi: boolean
 - onlyInCi: boolean
