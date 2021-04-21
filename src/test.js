@@ -4,6 +4,8 @@ const { status, result, hooks } = require("./constants");
 const { AssertionError } = require("assert")
 const EventEmitter = require("events");
 
+const emitter = new EventEmitter();
+
 /**
 * @typedef {{reasonToSkip: string,
 *            parallel: boolean,
@@ -69,6 +71,12 @@ class Group {
          * @type {Test}
          */
         this.current_test = null;
+        this._status = status.NOTSTARTED
+    }
+
+    set status(value){
+        this._status = value;
+        emitter.emit('GROUP_STATUS_CHANGED', this);
     }
 
     async runParallel() {
@@ -113,6 +121,7 @@ class Group {
 
         });
         await Promise.all(tasks);
+        emitter.emit('PARALLEL_TESTS_COMPLETED', this)
     };
 
     async runSerial() {
@@ -137,9 +146,11 @@ class Group {
                 }
             }
         }
+        emitter.emit('SERIAL_TESTS_COMPLETED', this);
     };
 
     async run() {
+        this.status = status.STARTED;
         await this.runHooks(this.before);
         this.parallelTests = this.tests.filter(t => t.options.parallel === true);
         this.serialTests = this.tests.filter(t => t.options.parallel === false);
@@ -163,6 +174,7 @@ class Group {
 
         }
         this.runHooks(this.after);
+        this.status = status.COMPLETED;
         const totalTime = Date.now() - startTime;
         console.log(`Total time taken: ${Number((totalTime / 1000).toFixed(2))} secs`)
 
@@ -256,6 +268,7 @@ class Test extends EventEmitter {
     set status(value) {
         this._status = value;
         this.emit(`TEST_${this._status}`, this)
+        emitter.emit('TEST_STATUS_CHANGED', this)
     }
     /**
      * @param  {string} value
@@ -266,6 +279,7 @@ class Test extends EventEmitter {
             this._status = status.COMPLETED;
         }
         this.emit(`TEST_${this._result}`, this)
+        emitter.emit('TEST_RESULT_CAME', this)
     }
 }
 
@@ -296,7 +310,7 @@ class Hook extends EventEmitter {
      */
     set status(value) {
         this._status = value;
-        this.emit(`HOOK_${this._status}`, this)
+        emitter.emit(`HOOK_STATUS_CHANGED`, this);
     }
     /**
      * @param  {string} value
@@ -306,8 +320,8 @@ class Hook extends EventEmitter {
         if (this._result in [hooks.result.DONE, hooks.result.FAILED]) {
             this._status = hooks.status.COMPLETED;
         }
-        this.emit(`HOOK_${this._result}`, this)
+        emitter.emit(`HOOK_RESULT_CAME`, this)
     }
 }
 
-module.exports = { Group, Test, Hook };
+module.exports = { Group, Test, Hook, emitter };

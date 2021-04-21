@@ -1,9 +1,8 @@
 //@ts-check
 
 const { hooks } = require("./constants");
-const report = require("./simple_console_reporter");
-const { Group, Test, Hook } = require("./test");
-
+const { Group, Test, Hook, emitter } = require("./test");
+require('./simple_console_reporter');
 
 /**
  * @type {Group}
@@ -101,7 +100,6 @@ function test(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, time
 }) {
     let t = new Test(desc, fn);
     t.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry, todo }
-    report(t);
     return t;
 }
 
@@ -201,4 +199,4 @@ async function runGroups() {
     }
 };
 
-module.exports = { group, test, step, before, beforeEach, afterEach, after, runGroups };
+module.exports = { group, test, step, before, beforeEach, afterEach, after, runGroups, emitter };

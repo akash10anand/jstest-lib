@@ -1,33 +1,32 @@
+//@ts-check
 /**
  * This is a simple report.
  * Reports use events from tests so later we can use these as plugins.
  */
 
-const {Test} = require('./test');
+const {emitter} = require('./test');
 
-/**
- * @param  {Test} entity
- */
-function report(entity) {
-    
-    entity.on('TEST_STARTED', (t)=>{
-        console.log(`Test ${t.desc} Started`, new Date())
-    })
-    entity.on('TEST_COMPLETED', (t)=>{
-        console.log(`Test ${t.desc} Completed`, new Date())
-    })
-    entity.on('TEST_PASSED', (t)=>{
-        console.log(`✅ ${t.desc}`)
-    })
-    entity.on('TEST_SKIPPED', (t)=>{
-        console.log(`SKIPPED: ${t.desc}`)
-    })
-    entity.on('TEST_FAILED', (t)=>{
-        console.log(`❌ ${t.desc}`)
-    })
-    entity.on('TEST_ERROR', (t)=>{
-        console.log(`❗ ${t.desc}`)
-    })
-}
+console.log("reporter registered");
 
-module.exports = report;
+emitter.on('GROUP_STATUS_CHANGED', (group) => {
+    console.log(`${group.desc} - ${group._status}`)
+})
+
+emitter.on('TEST_STATUS_CHANGED', (test) => {
+    console.log(`${test.desc} - ${test._status}`)
+})
+
+emitter.on('TEST_RESULT_CAME', (test) => {
+    if(test._result === 'PASSED'){
+        console.log(`✅ ${test.desc}`)
+    }
+    else if(test._result === 'SKIPPED'){
+        console.log(`SKIPPED: ${test.desc}`)
+    }
+    else if(test._result === 'FAILED'){
+        console.log(`❌ ${test.desc}`)
+    }
+    else if(test._result === 'ERROR'){
+        console.log(`❗ ${test.desc}`)
+    }
+})
