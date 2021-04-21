@@ -8,7 +8,6 @@ group("A basic group of tests", {
     tests: [
         test("inner test 1", async (t) => {
             await sleep(1000);
-            console.log(t)
         }, {
             skip: false,
             retry: 2,
@@ -17,7 +16,6 @@ group("A basic group of tests", {
 
         test("inner test 2", async (t) => {
             await sleep(1000);
-            console.log(t);
             ok(1 === 1)
         })
     ]
