@@ -5,7 +5,7 @@ jstest-lib is a simple testing library for Nodejs. More focus is on integration 
 ------------
 
 
-####Features:
+#### Features:
 - Tests can be run in Parallel (concurrent) as well as in Sequencial manner as per config.
 - Even the hooks (Before, After, BeforeEach, AfterEach) can run in parallel or in sequence.
 - Tests are simply as just any other application code
