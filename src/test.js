@@ -123,8 +123,13 @@ class Group {
         return hook;
     };
     /**
+     * A callback which will be called when test runs
+     * @callback callBack
+     * @param {Group} g
+     */
+    /**
      * @param {string} desc
-     * @param {Function} fn
+     * @param {callBack} fn
      */
     test(desc, fn) {
         let t = new Test(desc, fn);
@@ -220,7 +225,7 @@ class Group {
             }
 
         }
-        this.runHooks(this._after);
+        await this.runHooks(this._after);
         this.status = constants.status.COMPLETED;
         const totalTime = Date.now() - startTime;
         console.log(`Total time taken: ${Number((totalTime / 1000).toFixed(2))} secs`)
@@ -360,6 +365,7 @@ class Hook {
             retry: 0,
         }
     }
+    
     /**
      * @param  {string} value
      */
