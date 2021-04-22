@@ -21,7 +21,7 @@ emitter.on('TEST_RESULT_CAME', (test) => {
         console.log(`✅ ${test.desc}`)
     }
     else if(test._result === 'SKIPPED'){
-        console.log(`SKIPPED: ${test.desc}`)
+        console.log(`SKIPPED: ${test.desc} - Reason: ${test._options?.reasonToSkip}`)
     }
     else if(test._result === 'FAILED'){
         console.log(`❌ ${test.desc}`)
