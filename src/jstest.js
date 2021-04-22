@@ -1,6 +1,5 @@
 //@ts-check
 
-const { hooks } = require("./constants");
 const { Group, Test, Hook, emitter } = require("./test");
 require('./simple_console_reporter');
 
@@ -53,54 +52,26 @@ let groups = [];
 */
 
 /**
- * @param  {String} desc
- * @param  {detailedObject} detailedObject
+ * Callback for adding group data.
+ *
+ * @callback fn
+ * @param {Group} g - a Group object .
  */
-function group(desc, {
-    before,
-    beforeEach,
-    tests,
-    afterEach,
-    after,
-    options = { skip: false, reasonToSkip: '', parallel: false, skipInCi: false, onlyInCi: false, timeout: Infinity, retry: 0, todo: false }
-}) {
-    let _group = new Group(desc);
-    if (typeof (arguments[1]) === 'object') {
-        _group.beforeEach = beforeEach;
-        _group.before = before;
-        _group.tests = tests;
-        _group.parallelTests = [];
-        _group.serialTests = [];
-        _group.afterEach = afterEach;
-        _group.after = after;
-        _group.options = options;
 
-        current_group = _group;
-    }
-    else {
-        console.warn(`The 2nd argument needs to be an object!`);
-    }
-    groups.push(current_group);
-
-}
 /**
  * @param  {String} desc
- * @param  {Function} fn
- * @param  {(TestOptions | null)} TestOptions
+ * @param  {fn} fn
+ * @returns {Group}
  */
-function test(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry, todo } = {
-    skip: false,
-    reasonToSkip: "",
-    parallel: true,
-    skipInCi: false,
-    onlyInCi: false,
-    timeout: Infinity,
-    retry: 0,
-    todo: false
-}) {
-    let t = new Test(desc, fn);
-    t.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry, todo }
-    return t;
+function group(desc, fn) {
+    let _group = new Group(desc);
+    current_group = _group;
+    
+    void async function() {
+        await fn(_group);
+    }();
+    groups.push(current_group);
+    return _group;
 }
 
 async function step(desc, cb) {
@@ -113,84 +84,6 @@ async function step(desc, cb) {
     }
 }
 
-// The HOOKS
-/**
- * @returns {Hook}
- */
-function before(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry } = {
-    skip: false,
-    reasonToSkip: "",
-    parallel: true,
-    skipInCi: false,
-    onlyInCi: false,
-    timeout: Infinity,
-    retry: 0
-}) {
-    let hook = new Hook(desc, fn);
-    hook.type = hooks.types.BEFORE;
-    hook.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry }
-    return hook;
-
-}
-// The HOOKS
-/**
- * @returns {Hook}
- */
- function beforeEach(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry } = {
-    skip: false,
-    reasonToSkip: "",
-    parallel: true,
-    skipInCi: false,
-    onlyInCi: false,
-    timeout: Infinity,
-    retry: 0
-}) {
-    let hook = new Hook(desc, fn);
-    hook.type = hooks.types.BEFOREEACH;
-    hook.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry }
-    return hook;
-
-}
-// The HOOKS
-/**
- * @returns {Hook}
- */
- function afterEach(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry } = {
-    skip: false,
-    reasonToSkip: "",
-    parallel: true,
-    skipInCi: false,
-    onlyInCi: false,
-    timeout: Infinity,
-    retry: 0
-}) {
-    let hook = new Hook(desc, fn);
-    hook.type = hooks.types.AFTEREACH;
-    hook.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry }
-    return hook;
-
-}
-// The HOOKS
-/**
- * @returns {Hook}
- */
- function after(desc, fn, { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry } = {
-    skip: false,
-    reasonToSkip: "",
-    parallel: true,
-    skipInCi: false,
-    onlyInCi: false,
-    timeout: Infinity,
-    retry: 0
-}) {
-    let hook = new Hook(desc, fn);
-    hook.type = hooks.types.AFTER;
-    hook.options = { skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry }
-    return hook;
-
-}
-
-
 async function runGroups() {
     for (var index = 0; index < groups.length; index++) {
         var group = groups[index];
@@ -199,4 +92,4 @@ async function runGroups() {
     }
 };
 
-module.exports = { group, test, step, before, beforeEach, afterEach, after, runGroups, emitter };
+module.exports = { group, step, runGroups, emitter };

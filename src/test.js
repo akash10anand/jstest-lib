@@ -1,6 +1,6 @@
 //@ts-check
 
-const { status, result, hooks } = require("./constants");
+const constants = require("./constants");
 const { AssertionError } = require("assert")
 const EventEmitter = require("events");
 
@@ -25,34 +25,34 @@ class Group {
          */
         this.desc = desc;
         /**
-         * @type {Hook|Hook[]}
+         * @type {Hook[]}
          */
-        this.before = null;
+        this._before = [];
         /**
-         * @type {Hook|Hook[]}
+         * @type {Hook[]}
          */
-        this.beforeEach = null;
+        this._beforeEach = [];
         /**
          * @type {(Test[])}
          */
-        this.tests = null;
+        this._tests = [];
         /**
          * @type {Test[]}
          */
-        this.parallelTests = null;
+        this._parallelTests = [];
         /**
          * @type {Test[]}
          */
-        this.serialTests = null;
+        this._serialTests = [];
         /**
-         * @type {Hook|Hook[]}
+         * @type {Hook[]}
          */
-        this.afterEach = null;
+        this._afterEach = [];
         /**
-         * @type {Hook|Hook[]}
+         * @type {Hook[]}
          */
-        this.after = null;
-        this.options = {
+        this._after = [];
+        this._options = {
             skip: false,
             reasonToSkip: '',
             parallel: false,
@@ -71,49 +71,98 @@ class Group {
          * @type {Test}
          */
         this.current_test = null;
-        this._status = status.NOTSTARTED
+        this._status = constants.status.NOTSTARTED
     }
 
-    set status(value){
+    options({skip=false, reasonToSkip=undefined, parallel=true, skipInCi=false, onlyInCi=false, timeout=Infinity, retry=0, todo=false}={}){
+        this._options = {skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry, todo};
+    }
+
+    /**
+     * @param {string} value
+     */
+    set status(value) {
         this._status = value;
         emitter.emit('GROUP_STATUS_CHANGED', this);
     }
 
+    /**
+     * @param {Function} [fn]
+     */
+    before(desc='', fn) {
+        let hook = new Hook(desc, fn);
+        hook.type = constants.hooks.types.BEFORE;
+        this._before.push(hook);
+        return hook;
+    };
+    /**
+     * @param {Function} fn
+     */
+    beforeEach(desc='', fn) {
+        let hook = new Hook(desc, fn);
+        hook.type = constants.hooks.types.BEFOREEACH;
+        this._beforeEach.push(hook);
+        return hook;
+    };
+    /**
+     * @param {Function} fn
+     */
+    afterEach(desc='', fn) {
+        let hook = new Hook(desc, fn);
+        hook.type = constants.hooks.types.AFTEREACH;
+        this._afterEach.push(hook);
+        return hook;
+    };
+    /**
+     * @param {Function} fn
+     */
+    after(desc='', fn) {
+        let hook = new Hook(desc, fn);
+        hook.type = constants.hooks.types.AFTER;
+        this._after.push(hook);
+        return hook;
+    };
+    /**
+     * @param {string} desc
+     * @param {Function} fn
+     */
+    test(desc, fn) {
+        let t = new Test(desc, fn);
+        this._tests.push(t);
+        return t;
+    }
+
     async runParallel() {
-        let tasks = this.parallelTests.map(async (test, index) => {
-            test.status = status.STARTED
-            if (test.options.skip === true) {
+        let tasks = this._parallelTests.map(async (test, index) => {
+            test.status = constants.status.STARTED
+            if (test._options.skip === true) {
                 // TEST SKIPPED
                 this.stats.skip++;
                 // console.log("SKIPPED: ", test.desc);
-                test.status = status.COMPLETED;
-                test.result = result.SKIPPED;
+                test.result = constants.result.SKIPPED;
             } else {
                 try {
                     try {
-                        await this.runHooks(this.beforeEach);
+                        await this.runHooks(this._beforeEach);
                     } catch (error) {
                         throw error;
                     }
                     await test.fn(this);
                     // TEST PASSED
                     this.stats.pass++;
-                    test.status = status.COMPLETED;
-                    test.result = result.PASSED;
-                    await this.runHooks(this.afterEach);
+                    test.result = constants.result.PASSED;
+                    await this.runHooks(this._afterEach);
                 } catch (error) {
                     if (error.name === AssertionError.name) {
                         // TEST FAILED due to Assertion failure
                         this.stats.fail++;
-                        test.status = status.COMPLETED;
-                        test.result = result.FAILED;
+                        test.result = constants.result.FAILED;
                         console.log(error);
                     }
                     else {
                         // TEST ERROR due to some other error
                         this.stats.error++;
-                        test.status = status.COMPLETED;
-                        test.result = result.ERROR;
+                        test.result = constants.result.ERROR;
                         console.log(error);
                     }
                 }
@@ -125,22 +174,20 @@ class Group {
     };
 
     async runSerial() {
-        for (var index = 0; index < this.serialTests.length; index++) {
-            var test = this.serialTests[index];
-            test.status = status.STARTED
-            if (test.options.skip === true) {
+        for (var index = 0; index < this._serialTests.length; index++) {
+            var test = this._serialTests[index];
+            test.status = constants.status.STARTED
+            if (test._options.skip === true) {
                 // TEST SKIPED
                 this.stats.skip++;
                 console.log("SKIPPED: ", test.desc);
-                test.status = status.COMPLETED;
-                test.result = result.SKIPPED;
+                test.result = constants.result.SKIPPED;
             } else {
                 if (test.fn.toString().startsWith("async")) {
-                    await this.runHooks(this.beforeEach)
+                    await this.runHooks(this._beforeEach)
                     await test.fn(this);
-                    test.result = result.PASSED
-                    test.status = status.COMPLETED
-                    await this.runHooks(this.afterEach);
+                    test.result = constants.result.PASSED
+                    await this.runHooks(this._afterEach);
                 } else {
                     throw ("Not an async function");
                 }
@@ -150,14 +197,14 @@ class Group {
     };
 
     async run() {
-        this.status = status.STARTED;
-        await this.runHooks(this.before);
-        this.parallelTests = this.tests.filter(t => t.options.parallel === true);
-        this.serialTests = this.tests.filter(t => t.options.parallel === false);
+        this.status = constants.status.STARTED;
+        await this.runHooks(this._before);
+        this._parallelTests = this._tests.filter(t => t._options.parallel === true);
+        this._serialTests = this._tests.filter(t => t._options.parallel === false);
         const startTime = Date.now();
         // Run the parallel tests first.
         console.log("Tests started at: ", new Date());
-        if (this.options.parallel) {
+        if (this._options.parallel) {
             await Promise.all([this.runParallel(), this.runSerial()]);
         } else {
             // First the parallel tests will run and then the serial tests.
@@ -173,8 +220,8 @@ class Group {
             }
 
         }
-        this.runHooks(this.after);
-        this.status = status.COMPLETED;
+        this.runHooks(this._after);
+        this.status = constants.status.COMPLETED;
         const totalTime = Date.now() - startTime;
         console.log(`Total time taken: ${Number((totalTime / 1000).toFixed(2))} secs`)
 
@@ -185,8 +232,8 @@ class Group {
      */
     async runHooks(hooks) {
         if (Array.isArray(hooks) && hooks.length > 0) {
-            let parallelHooks = hooks.filter(t => t.options.parallel === true);
-            let serialHooks = hooks.filter(t => t.options.parallel === false);
+            let parallelHooks = hooks.filter(t => t._options.parallel === true);
+            let serialHooks = hooks.filter(t => t._options.parallel === false);
             // run the parallel objects
             await this.runHooksInParallel(parallelHooks);
             // run the serial objects
@@ -204,19 +251,20 @@ class Group {
     async runHooksInParallel(hooks) {
         if (Array.isArray(hooks) && hooks.length > 0) {
             let tasks = hooks.map(async (E, index) => {
-                E.status = status.STARTED
-                if (E.options.skip === true) {
+                E.status = constants.status.STARTED
+                if (E._options.skip === true) {
                     // ENTITY SKIPED
                     this.stats.skip++;
                     console.log("SKIPPED: ", E.desc);
-                    E.status = status.COMPLETED;
-                    E.result = result.SKIPPED;
+                    E.result = constants.result.SKIPPED;
                 } else {
                     try {
                         await E.fn(this);
                         console.log("✅", E.desc);
+                        E.result = constants.hooks.result.DONE
                     } catch (error) {
                         console.log("❗", E.desc);
+                        E.result = constants.hooks.result.DONE
                         console.log(error);
                     }
                 }
@@ -225,33 +273,37 @@ class Group {
         }
     };
 
+    /**
+     * @param {Hook[]} hooks
+     */
     async runHooksInSerial(hooks) {
         if (Array.isArray(hooks) && hooks.length > 0) {
-            for (var index = 0; index < this.serialTests.length; index++) {
+            for (var index = 0; index < this._serialTests.length; index++) {
                 var E = hooks[index];
-                if (E.fn.toString().startsWith("async")) {
-                    E.status = status.STARTED
+                try {
                     await E.fn(this);
                     console.log("✅", E.desc);
-                    E.result = result.PASSED;
-                    E.status = status.COMPLETED;
+                    E.result = constants.hooks.result.DONE
+                } catch (error) {
+                    console.log("❗", E.desc);
+                    E.result = constants.hooks.result.DONE
+                    console.log(error);
                 }
             }
         }
     };
 }
-class Test extends EventEmitter {
+class Test {
     /**
      * @param  {String} desc
      * @param  {(Function|null)} fn
      */
     constructor(desc, fn = null) {
-        super();
         this.desc = desc;
         this.fn = fn;
-        this._status = status.NOTSTARTED
-        this._result = result.UNTESTED
-        this.options = {
+        this._status = constants.status.NOTSTARTED
+        this._result = constants.result.UNTESTED
+        this._options = {
             skip: false,
             reasonToSkip: undefined,
             parallel: true,
@@ -267,7 +319,6 @@ class Test extends EventEmitter {
      */
     set status(value) {
         this._status = value;
-        this.emit(`TEST_${this._status}`, this)
         emitter.emit('TEST_STATUS_CHANGED', this)
     }
     /**
@@ -275,27 +326,31 @@ class Test extends EventEmitter {
      */
     set result(value) {
         this._result = value;
-        if (this._result in [result.PASSED, result.FAILED, result.SKIPPED]) {
-            this._status = status.COMPLETED;
+
+        // If result of Test is ERROR, then it was STARTED, but did not COMPLETE, so we are skipping it in the below array. 
+        if ([constants.result.PASSED, constants.result.FAILED, constants.result.SKIPPED].includes(value)) {
+            this.status = constants.status.COMPLETED;
         }
-        this.emit(`TEST_${this._result}`, this)
         emitter.emit('TEST_RESULT_CAME', this)
+    }
+
+    options({skip=false, reasonToSkip=undefined, parallel=true, skipInCi=false, onlyInCi=false, timeout=Infinity, retry=0, todo=false}={}){
+        this._options = {skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry, todo};
     }
 }
 
-class Hook extends EventEmitter {
+class Hook {
     /**
      * @param  {String} desc
      * @param  {(Function|null)} fn
      */
     constructor(desc, fn = null) {
-        super();
         this.desc = desc;
         this.type = '';
         this.fn = fn;
         this._result = null
-        this._status = hooks.status.NOTSTARTED
-        this.options = {
+        this._status = constants.hooks.status.NOTSTARTED
+        this._options = {
             skip: false,
             reasonToSkip: undefined,
             parallel: true,
@@ -310,17 +365,22 @@ class Hook extends EventEmitter {
      */
     set status(value) {
         this._status = value;
-        emitter.emit(`HOOK_STATUS_CHANGED`, this);
+        emitter.emit("HOOK_STATUS_CHANGED", this);
     }
     /**
      * @param  {string} value
      */
     set result(value) {
         this._result = value;
-        if (this._result in [hooks.result.DONE, hooks.result.FAILED]) {
-            this._status = hooks.status.COMPLETED;
+        
+        // If result of Hook is FAILED, then it was STARTED, but did not COMPLETE, so we are skipping it in the below array. 
+        if ([constants.hooks.result.DONE, constants.hooks.result.SKIPPED].includes(value)) {
+            this.status = constants.hooks.status.COMPLETED;
         }
-        emitter.emit(`HOOK_RESULT_CAME`, this)
+        emitter.emit("HOOK_RESULT_CAME", this)
+    }
+    options({skip=false, reasonToSkip=undefined, parallel=true, skipInCi=false, onlyInCi=false, timeout=Infinity, retry=0, todo=false}={}){
+        this._options = {skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry, todo};
     }
 }
 
