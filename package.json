@@ -1,7 +1,7 @@
 {
-  "name": "jstest",
+  "name": "jstest-lib",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple and concurrent testing library for Nodejs",
   "main": "index.js",
   "scripts": {
     "test": "node test/simpleNestedTests.js"

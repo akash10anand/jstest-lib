@@ -19,7 +19,8 @@ const hooks = {
     },
     result: {
         DONE: 'DONE',
-        FAILED: 'FAILED'
+        FAILED: 'FAILED',
+        SKIPPED: 'SKIPPED'
     },
     status: {
         NOTSTARTED: "NOTSTARTED",
