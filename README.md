@@ -17,7 +17,7 @@ jstest-lib is a simple testing library for Nodejs. More focus is on integration 
 
 #### Usage:
 ```javascript
-import t from "jstest-lib";
+import { group, runGroups } from "jstest-lib";
 import util from "util";
 
 const sleep = util.promisify(setTimeout);
