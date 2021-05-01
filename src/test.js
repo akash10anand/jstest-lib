@@ -362,6 +362,7 @@ class Test {
             retry: 0,
             todo: false,
         }
+        this._tags = [];
     }
     /**
      * @param  {string} value
@@ -385,6 +386,22 @@ class Test {
 
     options({skip=false, reasonToSkip=undefined, parallel=true, skipInCi=false, onlyInCi=false, timeout=Infinity, retry=0, todo=false}={}){
         this._options = {skip, reasonToSkip, parallel, skipInCi, onlyInCi, timeout, retry, todo};
+    }
+    /**
+     * @param {String | String[]} tags
+     */
+    tag(tags){
+        if(Array.isArray(tags)){
+            this._tags.push(...tags);
+        }else{
+            if(typeof(tags) === 'string'){
+                this._tags.push(tags)
+            }
+        }
+        
+    };
+    get tags(){
+        return this._tags;
     }
 }
 

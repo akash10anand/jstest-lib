@@ -13,14 +13,17 @@ const sleep = promisify(setTimeout);
 group("A basic group of tests", (t) => {
     t.before("before function", async () => {
         await sleep(1000);
+        ok(1==1);
     });
 
     t.beforeEach("before each", async () => {
         await sleep(1000);
+        ok(1 === 1)
     });
 
     t.test("test 1", async () => {
         await sleep(1000);
+        ok(1 === 1)
     }).options({
         skip: false,
         parallel: true
@@ -33,14 +36,39 @@ group("A basic group of tests", (t) => {
         step("assert that 1 is 1", () => {
             ok( 1===1 )
         });
-    });
+    }).tag(['tag1', 'tag2']);
 
-    t.after("after", (t)=>{
-        
-    })
 }).options({
     retry:2,
     timeout:5000
+})
+
+group("A group of tests with hooks and tests with steps", (t) => {
+    t.before("the first before", async () => {
+        await sleep(1000);
+        console.log("db connection created.");
+    }).options({
+        parallel: true
+    });
+
+    t.test("test 1", async () => {
+        await sleep(1000);
+    }).options({
+        skip: true,
+        reasonToSkip: "known failure",
+        retry: 2
+    });
+
+    t.test("test 2", async () => {
+        await sleep(1000);
+        ok(1 == 1);
+    });
+
+    t.after("this will run after all the test have completed.", async () => {
+        await sleep(1000);
+    })
+}).options({
+    retry: 2
 })
 
 runGroups();

@@ -10,48 +10,6 @@ let current_group;
 let groups = [];
 
 /**
-* @typedef {{reasonToSkip: string,
-*            parallel: boolean,
-*            skipInCi: boolean,
-*            onlyInCi: boolean,
-*            timeout: number,
-*            retry: number}} BaseOptions
-*/
-
-/**
-* @typedef {{skip: boolean,
-*            reasonToSkip: string,
-*            parallel: boolean,
-*            skipInCi: boolean,
-*            onlyInCi: boolean,
-*            timeout: number,
-*            retry: number,
-*            todo: boolean}} TestOptions
-*/
-
-/**
-* @typedef {{skip: boolean,
-*            reasonToSkip: string,
-*            parallel: boolean,
-*            skipInCi: boolean,
-*            onlyInCi: boolean,
-*            timeout: number,
-*            retry: number,
-*            todo: boolean}} GroupOptions
-*/
-
-/**
-* @typedef {{callBack: Function,
-*            before: (Hook|Hook[]),
-*            beforeEach: (Hook|Hook[]),
-*            tests: Test[],
-*            afterEach: (Hook|Hook[]),
-*            after: (Hook|Hook[]),
-*            options: GroupOptions,
-*            }} detailedObject
-*/
-
-/**
  * Callback for adding group data.
  *
  * @callback fn
