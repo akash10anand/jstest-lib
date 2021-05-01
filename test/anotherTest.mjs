@@ -33,7 +33,7 @@ group("A basic group of tests", (t) => {
         step("assert that 1 is 1", () => {
             ok( 1===1 )
         });
-    });
+    }).tag(['tag1', 'tag2']);
 
     t.after("after", (t)=>{
         
