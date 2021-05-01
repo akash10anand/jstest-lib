@@ -6,15 +6,6 @@ const EventEmitter = require("events");
 
 const emitter = new EventEmitter();
 
-/**
-* @typedef {{reasonToSkip: string,
-*            parallel: boolean,
-*            skipInCi: boolean,
-*            onlyInCi: boolean,
-*            timeout: number,
-*            retry: number}} BaseOptions
-*/
-
 class Group {
     /**
      * @param  {String} desc
@@ -25,33 +16,44 @@ class Group {
          */
         this.desc = desc;
         /**
+         * @private
          * @type {Hook[]}
          */
         this._before = [];
         /**
+         * @private
          * @type {Hook[]}
          */
         this._beforeEach = [];
         /**
+         * @private
          * @type {(Test[])}
          */
         this._tests = [];
         /**
+         * @private
          * @type {Test[]}
          */
         this._parallelTests = [];
         /**
+         * @private
          * @type {Test[]}
          */
         this._serialTests = [];
         /**
+         * @private
          * @type {Hook[]}
          */
         this._afterEach = [];
         /**
+         * @private
          * @type {Hook[]}
          */
         this._after = [];
+
+        /**
+         * @private
+         */
         this._options = {
             skip: false,
             reasonToSkip: '',
@@ -68,10 +70,16 @@ class Group {
             error: 0
         }
         /**
+         * @private
          * @type {Test}
          */
         this.current_test = null;
+
+        /**
+         * @private
+         */
         this._status = constants.status.NOTSTARTED
+        this._context = {}
     }
 
     options({skip=false, reasonToSkip=undefined, parallel=true, skipInCi=false, onlyInCi=false, timeout=Infinity, retry=0, todo=false}={}){
@@ -85,9 +93,19 @@ class Group {
         this._status = value;
         emitter.emit('GROUP_STATUS_CHANGED', this);
     }
+    
+    get context(){
+        return this._context;
+    }
+    /**
+     * A callback which will be called when test runs
+     * @callback callBack
+     * @param {Group} g
+     */
 
     /**
-     * @param {Function} [fn]
+     * @param {string} desc
+     * @param {callBack} fn
      */
     before(desc='', fn) {
         let hook = new Hook(desc, fn);
@@ -96,7 +114,8 @@ class Group {
         return hook;
     };
     /**
-     * @param {Function} fn
+     * @param {string} desc
+     * @param {callBack} fn
      */
     beforeEach(desc='', fn) {
         let hook = new Hook(desc, fn);
@@ -105,7 +124,8 @@ class Group {
         return hook;
     };
     /**
-     * @param {Function} fn
+     * @param {string} desc
+     * @param {callBack} fn
      */
     afterEach(desc='', fn) {
         let hook = new Hook(desc, fn);
@@ -114,7 +134,8 @@ class Group {
         return hook;
     };
     /**
-     * @param {Function} fn
+     * @param {string} desc
+     * @param {callBack} fn
      */
     after(desc='', fn) {
         let hook = new Hook(desc, fn);
@@ -122,11 +143,7 @@ class Group {
         this._after.push(hook);
         return hook;
     };
-    /**
-     * A callback which will be called when test runs
-     * @callback callBack
-     * @param {Group} g
-     */
+    
     /**
      * @param {string} desc
      * @param {callBack} fn
@@ -137,6 +154,9 @@ class Group {
         return t;
     }
 
+    /**
+     * @private
+     */
     async runParallel() {
         let tasks = this._parallelTests.map(async (test, index) => {
             test.status = constants.status.STARTED
@@ -152,11 +172,15 @@ class Group {
                     } catch (error) {
                         throw error;
                     }
+                    this.current_test = test;
                     await test.fn(this);
                     // TEST PASSED
                     this.stats.pass++;
                     test.result = constants.result.PASSED;
                     await this.runHooks(this._afterEach);
+
+                    // Make the current_test value null after each test.
+                    // this.current_test = null;
                 } catch (error) {
                     if (error.name === AssertionError.name) {
                         // TEST FAILED due to Assertion failure
@@ -178,6 +202,9 @@ class Group {
         emitter.emit('PARALLEL_TESTS_COMPLETED', this)
     };
 
+    /**
+     * @private
+     */
     async runSerial() {
         for (var index = 0; index < this._serialTests.length; index++) {
             var test = this._serialTests[index];
@@ -190,9 +217,13 @@ class Group {
             } else {
                 if (test.fn.toString().startsWith("async")) {
                     await this.runHooks(this._beforeEach)
+                    this.current_test = test;
                     await test.fn(this);
                     test.result = constants.result.PASSED
                     await this.runHooks(this._afterEach);
+                    
+                    // Make the current_test value null after each test.
+                    // this.current_test = null;
                 } else {
                     throw ("Not an async function");
                 }
@@ -233,6 +264,7 @@ class Group {
     }
 
     /**
+     * @private
      * @param  {Hook|Hook[]} hooks
      */
     async runHooks(hooks) {
@@ -251,25 +283,26 @@ class Group {
 
 
     /**
-     * @param  {Hook|Hook[]} hooks
+     * @private
+     * @param  {Hook[]} hooks
      */
     async runHooksInParallel(hooks) {
         if (Array.isArray(hooks) && hooks.length > 0) {
-            let tasks = hooks.map(async (E, index) => {
-                E.status = constants.status.STARTED
-                if (E._options.skip === true) {
+            let tasks = hooks.map(async (hook, index) => {
+                hook.status = constants.status.STARTED
+                if (hook._options.skip === true) {
                     // ENTITY SKIPED
                     this.stats.skip++;
-                    console.log("SKIPPED: ", E.desc);
-                    E.result = constants.result.SKIPPED;
+                    console.log("SKIPPED: ", hook.desc);
+                    hook.result = constants.result.SKIPPED;
                 } else {
                     try {
-                        await E.fn(this);
-                        console.log("✅", E.desc);
-                        E.result = constants.hooks.result.DONE
+                        await hook.fn(this);
+                        console.log("✅", hook.desc);
+                        hook.result = constants.hooks.result.DONE
                     } catch (error) {
-                        console.log("❗", E.desc);
-                        E.result = constants.hooks.result.DONE
+                        console.log("❗", hook.desc);
+                        hook.result = constants.hooks.result.DONE
                         console.log(error);
                     }
                 }
@@ -279,6 +312,7 @@ class Group {
     };
 
     /**
+     * @private
      * @param {Hook[]} hooks
      */
     async runHooksInSerial(hooks) {
@@ -297,6 +331,16 @@ class Group {
             }
         }
     };
+
+    async step(desc, cb) {
+        try {
+            await cb();
+            console.log(`   - ${desc}`);
+        } catch (error) {
+            console.log(`   - Failed at this step: ${desc}`);
+            throw Error(error);
+        }
+    }
 }
 class Test {
     /**
